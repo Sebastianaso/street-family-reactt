@@ -20,12 +20,22 @@ const gallery = [
   { src: tank, title: 'Detalles', text: 'Cada pieza cuenta una historia.' },
 ];
 
+const motoSpecs = [
+  { id: 'engine', x: '49%', y: '63%', title: 'Motor V-Twin', desc: '400cc / 52° V-Twin refrigerado por líquido con tapas cromadas pulidas.' },
+  { id: 'tank', x: '49%', y: '44%', title: 'Tanque Custom Bi-tono', desc: 'Azul cobalto metalizado con gota marfil e insignia Steed clásica.' },
+  { id: 'exhaust', x: '55%', y: '48%', title: 'Escapes Straight Pipes', desc: 'Línea de escapes altos custom con sonido grave e inconfundible.' },
+  { id: 'bags', x: '79%', y: '60%', title: 'Alforjas de Cuero', desc: 'Cuero negro repujado con remaches cromados y flecos custom tradicionales.' },
+  { id: 'front', x: '33%', y: '38%', title: 'Front End Chopper', desc: 'Horquilla lanzada, manillar elevado y óptica doble auxiliar.' },
+  { id: 'wheel', x: '18%', y: '68%', title: 'Rueda Delantera', desc: 'Llanta de radios negros con neumático Metzeler Tourance.' }
+];
+
 function App() {
   const [menu, setMenu] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [disassembled, setDisassembled] = useState(false);
   const [motoProgress, setMotoProgress] = useState(1);
   const [motoTime, setMotoTime] = useState(10);
+  const [activeSpot, setActiveSpot] = useState(null);
   const motoAnimationRef = useRef(null);
   const motoVideoRef = useRef(null);
   const EXPLODED_TIME = 5.2;
@@ -161,21 +171,76 @@ function App() {
             <div className="moto-glow" />
             <div className="moto-grid" />
             <div className="moto-image-wrap" ref={motoRef}>
-              <video
-                ref={motoVideoRef}
-                className="moto-video moto-frame"
-                src={explodedVideo}
-                muted
-                playsInline
-                preload="auto"
-                aria-label={disassembled ? 'Honda Steed Gillette Subi en vista explotada' : 'Honda Steed Gillette Subi'}
-                onLoadedMetadata={(e) => { e.currentTarget.currentTime = END_TIME; setMotoTime(END_TIME); }}
-                onTimeUpdate={(e) => setMotoTime(e.currentTarget.currentTime)}
-              />
-              <div className="scanline" />
+              <div className="moto-canvas">
+                <img
+                  src={gillette}
+                  alt="Honda Steed Gillette Subi"
+                  className={`moto-photo ${disassembled ? 'is-hidden' : 'is-visible'}`}
+                />
+                <video
+                  ref={motoVideoRef}
+                  className={`moto-video moto-frame ${disassembled ? 'is-visible' : 'is-hidden'}`}
+                  src={explodedVideo}
+                  poster={gillette}
+                  muted
+                  playsInline
+                  preload="auto"
+                  aria-label={disassembled ? 'Honda Steed Gillette Subi en vista explotada' : 'Honda Steed Gillette Subi'}
+                  onLoadedMetadata={(e) => {
+                    if (disassembled) {
+                      e.currentTarget.currentTime = EXPLODED_TIME;
+                      setMotoTime(EXPLODED_TIME);
+                    }
+                  }}
+                  onTimeUpdate={(e) => setMotoTime(e.currentTarget.currentTime)}
+                />
+                {!disassembled && (
+                  <div className="moto-hotspots">
+                    {motoSpecs.map((spot) => (
+                      <button
+                        key={spot.id}
+                        type="button"
+                        className={`hotspot-node ${activeSpot?.id === spot.id ? 'active' : ''}`}
+                        style={{ left: spot.x, top: spot.y }}
+                        onMouseEnter={() => setActiveSpot(spot)}
+                        onMouseLeave={() => setActiveSpot(null)}
+                        onClick={() => setActiveSpot(activeSpot?.id === spot.id ? null : spot)}
+                        aria-label={`Detalle: ${spot.title}`}
+                      >
+                        <span className="hotspot-pulse" />
+                        <span className="hotspot-dot" />
+                        <div className="hotspot-tooltip">
+                          <strong>{spot.title}</strong>
+                          <p>{spot.desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="scanline" />
+              </div>
             </div>
             <div className="moto-status"><span className={disassembled ? 'dot hot' : 'dot'} />{disassembled ? 'VISTA EXPLOTADA' : 'MÁQUINA LISTA'}</div>
             <div className="moto-badge">HONDA STEED · GILLETTE SUBI <b>01</b></div>
+          </div>
+
+          <div className="moto-specs-bar">
+            <div className="spec-item">
+              <span className="spec-label">MODELO</span>
+              <strong className="spec-val">HONDA STEED 400 / 600 VLX</strong>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">CONFIGURACIÓN</span>
+              <strong className="spec-val">V-TWIN CUSTOM CHOPPER</strong>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">PINTURA</span>
+              <strong className="spec-val">AZUL COBALTO & MARFIL</strong>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">LINAJE</span>
+              <strong className="spec-val">STREET FAMILY MOTO GROUP</strong>
+            </div>
           </div>
           <div className="moto-controls">
             <button className={!disassembled ? 'control active' : 'control'} onClick={() => setMotoState(false)}><span>01</span> ARMAR MOTO</button>

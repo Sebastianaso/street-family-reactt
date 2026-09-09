@@ -689,19 +689,231 @@ button:focus-visible {
 
 .moto-image-wrap {
   position: relative;
-  width: min(1050px, 92%);
+  width: min(1050px, 94%);
   z-index: 2;
   display: grid;
   place-items: center;
 }
 
+.moto-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  place-items: center;
+}
+
+.moto-photo,
 .moto-video {
+  grid-area: 1 / 1 / 2 / 2;
   display: block;
   width: 100%;
   height: auto;
   max-height: 520px;
   object-fit: contain;
+  transition: opacity 0.5s ease, transform 0.5s var(--ease-smooth);
+}
+
+.moto-photo {
+  z-index: 2;
+  filter: drop-shadow(0 35px 40px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 35px rgba(255, 30, 39, 0.25));
+}
+
+.moto-photo:hover {
+  filter: drop-shadow(0 40px 50px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 45px rgba(255, 30, 39, 0.4));
+}
+
+.moto-video {
+  z-index: 1;
   filter: drop-shadow(0 35px 35px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 25px rgba(255, 255, 255, 0.06));
+}
+
+.moto-photo.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.97);
+}
+
+.moto-photo.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.moto-video.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.moto-video.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Interactive Hotspots */
+.moto-hotspots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hotspot-node {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.hotspot-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 14px var(--red), 0 0 4px #fff;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  z-index: 2;
+}
+
+.hotspot-pulse {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--red);
+  animation: hotspotWave 2.2s infinite cubic-bezier(0.25, 1, 0.5, 1);
+  opacity: 0.9;
+}
+
+@keyframes hotspotWave {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+.hotspot-node:hover .hotspot-dot,
+.hotspot-node.active .hotspot-dot {
+  transform: scale(1.4);
+  background: #ffffff;
+  box-shadow: 0 0 16px #ffffff, 0 0 25px var(--red);
+}
+
+.hotspot-node:hover .hotspot-pulse,
+.hotspot-node.active .hotspot-pulse {
+  border-color: #ffffff;
+  animation-duration: 1.2s;
+}
+
+.hotspot-tooltip {
+  position: absolute;
+  bottom: 38px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(10, 10, 14, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line-red);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  width: 220px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s var(--ease-smooth), transform 0.22s var(--ease-smooth), visibility 0.22s;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 30, 39, 0.2);
+  z-index: 10;
+  text-align: left;
+}
+
+.hotspot-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: var(--line-red) transparent transparent transparent;
+}
+
+.hotspot-tooltip strong {
+  display: block;
+  font: 800 13px 'Barlow Condensed', sans-serif;
+  letter-spacing: 1.5px;
+  color: #fff;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.hotspot-tooltip p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.hotspot-node:hover .hotspot-tooltip,
+.hotspot-node.active .hotspot-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Quick Specs Telemetry Bar */
+.moto-specs-bar {
+  width: min(1050px, 94%);
+  margin: 24px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.spec-item {
+  background: rgba(18, 18, 22, 0.5);
+  border: 1px solid var(--line);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all var(--transition);
+}
+
+.spec-item:hover {
+  border-color: var(--line-red);
+  background: rgba(255, 30, 39, 0.04);
+  transform: translateY(-2px);
+}
+
+.spec-label {
+  font: 700 10px 'Barlow Condensed', sans-serif;
+  letter-spacing: 2.5px;
+  color: var(--red);
+  text-transform: uppercase;
+}
+
+.spec-val {
+  font: 800 13px 'Barlow Condensed', sans-serif;
+  letter-spacing: 1px;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .moto-specs-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hotspot-tooltip {
+    width: 180px;
+    padding: 8px 12px;
+  }
 }
 
 .scanline {
