@@ -9,8 +9,8 @@ import tank from './assets/tank.jpg';
 import city from './assets/city.jpg';
 import sunset from './assets/sunset.jpg';
 import ride from './assets/ride.jpg';
-import gillette from './assets/gillette-subi.jpg';
-import explodedVideo from './assets/gillette-frames/gillette-subi-exploded.webm';
+import gilletteAssembled from './assets/gillette-subi.jpg';
+import gilletteExploded from './assets/gillette-subi-exploded.jpg';
 
 const gallery = [
   { src: sunset, title: 'Rodar juntos', text: 'Atardeceres, carretera y kilómetros compartidos.' },
@@ -32,14 +32,9 @@ const motoSpecs = [
 function App() {
   const [menu, setMenu] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [disassembled, setDisassembled] = useState(false);
-  const [motoProgress, setMotoProgress] = useState(1);
-  const [motoTime, setMotoTime] = useState(10);
+  const [disassembleProgress, setDisassembleProgress] = useState(0); // 0 = armada, 100 = desarmada
   const [activeSpot, setActiveSpot] = useState(null);
-  const motoAnimationRef = useRef(null);
-  const motoVideoRef = useRef(null);
-  const EXPLODED_TIME = 5.2;
-  const END_TIME = 10;
+  const progressTweenRef = useRef({ val: 0 });
   const heroRef = useRef(null);
   const motoRef = useRef(null);
 
@@ -62,50 +57,23 @@ function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  useEffect(() => () => cancelAnimationFrame(motoAnimationRef.current), []);
-
-  const animateMotoTo = (target) => {
-    const video = motoVideoRef.current;
-    if (!video) return;
-    cancelAnimationFrame(motoAnimationRef.current);
-    const from = video.currentTime;
-    const to = Math.max(0, Math.min(END_TIME, target));
-    const start = performance.now();
-    const duration = Math.max(700, Math.abs(to - from) * 420);
-
-    const tick = (now) => {
-      const p = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      const time = from + (to - from) * eased;
-      video.currentTime = time;
-      setMotoTime(time);
-      setMotoProgress(Math.min(1, Math.abs(time) / EXPLODED_TIME));
-      if (p < 1) {
-        motoAnimationRef.current = requestAnimationFrame(tick);
-      } else {
-        video.currentTime = to;
-        setMotoTime(to);
-        setMotoProgress(to <= EXPLODED_TIME ? to / EXPLODED_TIME : 1);
-        setDisassembled(to >= EXPLODED_TIME - .08 && to < 7.5);
+  const animateToProgress = (targetVal) => {
+    gsap.killTweensOf(progressTweenRef.current);
+    gsap.to(progressTweenRef.current, {
+      val: targetVal,
+      duration: 0.85,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        setDisassembleProgress(Math.round(progressTweenRef.current.val));
       }
-    };
-    motoAnimationRef.current = requestAnimationFrame(tick);
+    });
   };
 
-  const setMotoState = (isDisassembled) => {
-    setDisassembled(isDisassembled);
-    animateMotoTo(isDisassembled ? EXPLODED_TIME : END_TIME);
-  };
-
-  const scrubMoto = (value) => {
-    const next = Number(value);
-    cancelAnimationFrame(motoAnimationRef.current);
-    const video = motoVideoRef.current;
-    if (!video) return;
-    video.currentTime = next;
-    setMotoTime(next);
-    setMotoProgress(next <= EXPLODED_TIME ? next / EXPLODED_TIME : 1);
-    setDisassembled(next >= EXPLODED_TIME - .08 && next < 7.5);
+  const handleSliderChange = (e) => {
+    const val = Number(e.target.value);
+    gsap.killTweensOf(progressTweenRef.current);
+    progressTweenRef.current.val = val;
+    setDisassembleProgress(val);
   };
 
   const scrollTo = (id) => {
@@ -116,6 +84,9 @@ function App() {
   const changeGallery = (dir) => {
     setGalleryIndex((i) => (i + dir + gallery.length) % gallery.length);
   };
+
+  const p = disassembleProgress / 100;
+  const isDisassembled = p >= 0.5;
 
   return (
     <div className="site">
@@ -172,30 +143,37 @@ function App() {
             <div className="moto-grid" />
             <div className="moto-image-wrap" ref={motoRef}>
               <div className="moto-canvas">
+                {/* Moto completa armada (aparece primero al 0%) */}
                 <img
-                  src={gillette}
-                  alt="Honda Steed Gillette Subi"
-                  className={`moto-photo ${disassembled ? 'is-hidden' : 'is-visible'}`}
-                />
-                <video
-                  ref={motoVideoRef}
-                  className={`moto-video moto-frame ${disassembled ? 'is-visible' : 'is-hidden'}`}
-                  src={explodedVideo}
-                  poster={gillette}
-                  muted
-                  playsInline
-                  preload="auto"
-                  aria-label={disassembled ? 'Honda Steed Gillette Subi en vista explotada' : 'Honda Steed Gillette Subi'}
-                  onLoadedMetadata={(e) => {
-                    if (disassembled) {
-                      e.currentTarget.currentTime = EXPLODED_TIME;
-                      setMotoTime(EXPLODED_TIME);
-                    }
+                  src={gilletteAssembled}
+                  alt="Honda Steed - Máquina Completa Armada"
+                  className="moto-photo moto-photo-assembled"
+                  style={{
+                    opacity: Math.max(0, 1 - p * 1.05),
+                    transform: `scale(${1 - p * 0.03})`,
+                    pointerEvents: p < 0.35 ? 'auto' : 'none',
                   }}
-                  onTimeUpdate={(e) => setMotoTime(e.currentTarget.currentTime)}
                 />
-                {!disassembled && (
-                  <div className="moto-hotspots">
+                {/* Moto desarmada con todas las piezas fuera (aparece a medida que sube la barra hacia 100%) */}
+                <img
+                  src={gilletteExploded}
+                  alt="Honda Steed - Vista Explotada con Piezas Fuera"
+                  className="moto-photo moto-photo-exploded"
+                  style={{
+                    opacity: Math.min(1, p * 1.05),
+                    transform: `scale(${0.96 + p * 0.04})`,
+                    pointerEvents: p >= 0.65 ? 'auto' : 'none',
+                  }}
+                />
+                {/* Hotspots interactivos cuando la moto está armada */}
+                {p < 0.35 && (
+                  <div
+                    className="moto-hotspots"
+                    style={{
+                      opacity: Math.max(0, 1 - p * 3),
+                      pointerEvents: p < 0.2 ? 'auto' : 'none'
+                    }}
+                  >
                     {motoSpecs.map((spot) => (
                       <button
                         key={spot.id}
@@ -220,7 +198,10 @@ function App() {
                 <div className="scanline" />
               </div>
             </div>
-            <div className="moto-status"><span className={disassembled ? 'dot hot' : 'dot'} />{disassembled ? 'VISTA EXPLOTADA' : 'MÁQUINA LISTA'}</div>
+            <div className="moto-status">
+              <span className={isDisassembled ? 'dot hot' : 'dot'} />
+              {isDisassembled ? `VISTA EXPLOTADA (${disassembleProgress}%)` : `MÁQUINA LISTA (${100 - disassembleProgress}%)`}
+            </div>
             <div className="moto-badge">HONDA STEED · GILLETTE SUBI <b>01</b></div>
           </div>
 
@@ -242,16 +223,53 @@ function App() {
               <strong className="spec-val">STREET FAMILY MOTO GROUP</strong>
             </div>
           </div>
+
           <div className="moto-controls">
-            <button className={!disassembled ? 'control active' : 'control'} onClick={() => setMotoState(false)}><span>01</span> ARMAR MOTO</button>
+            <button
+              className={disassembleProgress <= 10 ? 'control active' : 'control'}
+              onClick={() => animateToProgress(0)}
+            >
+              <span>01</span> ARMAR MOTO
+            </button>
             <div className="control-line" />
-            <button className={disassembled ? 'control active' : 'control'} onClick={() => setMotoState(true)}><span>02</span> DESARMAR MOTO</button>
+            <button
+              className={disassembleProgress >= 90 ? 'control active' : 'control'}
+              onClick={() => animateToProgress(100)}
+            >
+              <span>02</span> DESARMAR MOTO
+            </button>
           </div>
+
           <div className="moto-scrubber">
-            <div className="scrub-labels"><span>ARMADA</span><span>DESARME</span></div>
-            <input aria-label="Controlar desarme de la Gillette Subi" type="range" min="0" max={END_TIME} step="0.05" value={motoTime} onChange={(e) => scrubMoto(e.target.value)} />
+            <div className="scrub-labels">
+              <span className={disassembleProgress < 50 ? 'active' : ''}>
+                01 · MOTO COMPLETA (ARMADA)
+              </span>
+              <span className="scrub-pct">
+                {disassembleProgress === 0 && 'ENSAMBLADA AL 100%'}
+                {disassembleProgress > 0 && disassembleProgress < 100 && `DESARME EN CURSO: ${disassembleProgress}%`}
+                {disassembleProgress === 100 && 'PIEZAS FUERA (VISTA EXPLOTADA)'}
+              </span>
+              <span className={disassembleProgress >= 50 ? 'active' : ''}>
+                02 · DESARME (PIEZAS FUERA)
+              </span>
+            </div>
+            <input
+              aria-label="Controlar desarme de la Honda Steed"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={disassembleProgress}
+              onChange={handleSliderChange}
+              style={{
+                background: `linear-gradient(90deg, var(--red) ${disassembleProgress}%, #23232a ${disassembleProgress}%)`
+              }}
+            />
           </div>
-          <p className="moto-note">La animación está basada directamente en tu video de referencia: la Honda Steed se desarma hasta la vista explotada y vuelve a ensamblarse en la misma secuencia.</p>
+          <p className="moto-note">
+            Desliza la barra para observar el proceso de desarme técnico de la <strong>Honda Steed · Gillette Subi</strong>: pasa gradualmente de la moto completa armada a la vista con todas las piezas y componentes fuera.
+          </p>
         </section>
 
         <section className="quote">
